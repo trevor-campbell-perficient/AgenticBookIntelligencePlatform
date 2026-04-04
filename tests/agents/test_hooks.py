@@ -51,3 +51,20 @@ def test_pre_tool_use_allows_write_when_not_read_only():
     from agents.hooks import pre_tool_use_read_only
     result = pre_tool_use_read_only("add_annotation", {"book_id": "b1"}, read_only=False)
     assert result is None
+
+
+def test_audit_log_hook_does_not_raise(capsys):
+    audit_log_hook("session-abc-123", "get_book", {"book_id": "b1"}, {"title": "Dune"})
+    captured = capsys.readouterr()
+    assert "get_book" in captured.out
+
+
+def test_audit_log_hook_survives_non_serializable_input(capsys):
+    audit_log_hook("session-abc-123", "get_book", {"obj": object()}, None)
+    # Must not raise — audit hook must be exception-safe
+
+
+def test_post_tool_use_normalize_delegates_to_normalize_timestamps():
+    from agents.hooks import post_tool_use_normalize
+    result = post_tool_use_normalize("some_tool", {"created_at": 1700000000})
+    assert "T" in result["created_at"]

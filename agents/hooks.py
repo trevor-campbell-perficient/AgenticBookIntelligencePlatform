@@ -1,10 +1,18 @@
 import json
 import re
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-# Unix timestamps are typically 10 digits (seconds since epoch, year 2001-2286)
-_UNIX_TS_RE = re.compile(r"^1[0-9]{9}$")
+# Unix timestamps: 10 digits covers ~2001-09-08 to ~2286-11-20
+_UNIX_TS_RE = re.compile(r"^[1-9][0-9]{9}$")
+
+
+def _safe_json(value: Any) -> str:
+    try:
+        return json.dumps(value)
+    except (TypeError, ValueError):
+        return repr(value)
 
 
 def normalize_timestamps(obj: Any) -> Any:
@@ -25,7 +33,7 @@ def post_tool_use_normalize(tool_name: str, tool_result: Any, read_only: bool = 
     return tool_result
 
 
-def pre_tool_use_read_only(tool_name: str, tool_input: dict, read_only: bool = False) -> Optional[dict]:
+def pre_tool_use_read_only(tool_name: str, tool_input: Any, read_only: bool = False) -> Optional[dict]:
     """PreToolUse hook: block write operations in read-only mode.
     Returns None to allow, or an error dict to block.
     """
@@ -43,14 +51,12 @@ def pre_tool_use_read_only(tool_name: str, tool_input: dict, read_only: bool = F
 
 def audit_log_hook(session_id: str, tool_name: str, tool_input: Any, tool_result: Any) -> None:
     """PostToolUse hook: write audit entry. In production, writes to abip.intelligence.audit_log."""
-    import uuid
-
     entry = {
         "log_id": str(uuid.uuid4()),
         "session_id": session_id,
         "tool_name": tool_name,
-        "tool_input": json.dumps(tool_input),
-        "tool_result": json.dumps(tool_result)[:2000],  # truncate large results
+        "tool_input": _safe_json(tool_input),
+        "tool_result": _safe_json(tool_result)[:2000],  # truncate large results
     }
     # TODO: write to Delta table in production; print for now
     print(f"[AUDIT] {entry['tool_name']} called in session {session_id[:8]}")

@@ -10,6 +10,7 @@ sys.modules['databricks.sql'] = _databricks_sql_mock
 import pytest
 from unittest.mock import patch
 
+
 def test_create_schema_executes_all_three_schemas():
     mock_cursor = MagicMock()
     with patch("workflows.setup_schema.get_connection", return_value=MagicMock(cursor=lambda: mock_cursor)):
@@ -19,6 +20,7 @@ def test_create_schema_executes_all_three_schemas():
     assert any("CREATE SCHEMA IF NOT EXISTS abip.books" in c for c in calls)
     assert any("CREATE SCHEMA IF NOT EXISTS abip.reading" in c for c in calls)
     assert any("CREATE SCHEMA IF NOT EXISTS abip.intelligence" in c for c in calls)
+
 
 def test_create_schema_creates_all_required_tables():
     mock_cursor = MagicMock()
@@ -31,13 +33,17 @@ def test_create_schema_creates_all_required_tables():
         "abip.books.authors",
         "abip.books.reviews",
         "abip.books.enrichment_queue",
+        "abip.books.editions",
         "abip.reading.reading_log",
         "abip.reading.reading_sessions",
+        "abip.reading.annotations",
         "abip.intelligence.reading_briefs",
+        "abip.intelligence.book_embeddings",
         "abip.intelligence.audit_log",
     ]
     for table in required_tables:
         assert any(table in c for c in calls), f"Missing DDL for {table}"
+
 
 def test_create_schema_uses_delta_format():
     mock_cursor = MagicMock()
@@ -48,6 +54,7 @@ def test_create_schema_uses_delta_format():
     table_creates = [c for c in calls if "CREATE TABLE" in c]
     assert len(table_creates) >= 8, "Expected at least 8 CREATE TABLE statements"
     assert all("USING DELTA" in c for c in table_creates), "All tables must use USING DELTA"
+
 
 def test_get_connection_strips_https_prefix():
     with patch.dict("os.environ", {
@@ -64,3 +71,12 @@ def test_get_connection_strips_https_prefix():
         call_kwargs = mock_connect.call_args[1]
         assert not call_kwargs["server_hostname"].startswith("https://")
         assert call_kwargs["server_hostname"] == "my-workspace.azuredatabricks.net"
+
+
+def test_get_connection_raises_on_missing_env_vars():
+    with patch.dict("os.environ", {}, clear=True):
+        import importlib
+        import workflows.setup_schema as m
+        importlib.reload(m)
+        with pytest.raises(EnvironmentError, match="Missing required environment variables"):
+            m.get_connection()

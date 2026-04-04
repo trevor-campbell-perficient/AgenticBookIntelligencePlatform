@@ -44,11 +44,9 @@ def _handle_update_reading_status(args: dict[str, Any]) -> dict:
 def _handle_search_my_library(args: dict[str, Any]) -> dict:
     return {
         "error": True,
-        "errorCategory": "transient",
+        "errorCategory": "validation",
         "isRetryable": False,
-        "message": (
-            "Vector search not yet implemented — requires FM index setup in Databricks workspace."
-        ),
+        "message": "Vector search not yet implemented — requires FM index setup in Databricks workspace.",
     }
 
 
@@ -102,11 +100,7 @@ if _MCP_AVAILABLE:
             ),
             types.Tool(
                 name="get_reading_stats",
-                description=(
-                    "Get aggregated reading statistics: total books by status, count by genre, "
-                    "average rating. Use for 'how many books did I read?' or to populate "
-                    "dashboard data. Returns a summary dict, not individual book records."
-                ),
+                description="Get aggregated reading statistics: total books by status (read, reading, want_to_read). Use for 'how many books did I read?' questions or to populate dashboard counts. Returns a summary dict keyed by status, not individual book records.",
                 inputSchema={"type": "object", "properties": {}, "required": []},
             ),
             types.Tool(
@@ -230,12 +224,7 @@ if _MCP_AVAILABLE:
             try:
                 result = handler(arguments)
             except Exception as e:
-                result = {
-                    "error": True,
-                    "errorCategory": "transient",
-                    "isRetryable": False,
-                    "message": str(e),
-                }
+                result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
     async def main() -> None:

@@ -32,13 +32,14 @@ def trigger_enrichment(book_id: str) -> dict[str, Any]:
         jobs = list(client.jobs.list(name=job_name))
         if not jobs:
             return {
-                "error": True,
-                "errorCategory": "validation",
-                "isRetryable": False,
-                "message": (
-                    f"Enrichment job '{job_name}' not found. "
-                    "Create it in Databricks Workflows first."
-                ),
+                "error": True, "errorCategory": "validation", "isRetryable": False,
+                "message": f"Enrichment job '{job_name}' not found. Create it in Databricks Workflows first."
+            }
+        if len(jobs) > 1:
+            job_ids = [str(j.job_id) for j in jobs]
+            return {
+                "error": True, "errorCategory": "validation", "isRetryable": False,
+                "message": f"Multiple jobs named '{job_name}' found (IDs: {', '.join(job_ids)}). Rename duplicates to ensure uniqueness."
             }
         job_id = jobs[0].job_id
         run = client.jobs.run_now(job_id=job_id, job_parameters={"book_id": book_id})
@@ -54,8 +55,15 @@ def trigger_enrichment(book_id: str) -> dict[str, Any]:
 def get_job_status(run_id: str) -> dict[str, Any]:
     """Get the status of a Databricks job run."""
     try:
+        run_id_int = int(run_id)
+    except ValueError:
+        return {
+            "error": True, "errorCategory": "validation", "isRetryable": False,
+            "message": f"run_id must be a numeric string, got: {run_id!r}"
+        }
+    try:
         client = _get_client()
-        run = client.jobs.get_run(run_id=int(run_id))
+        run = client.jobs.get_run(run_id=run_id_int)
         state = run.state
         return {
             "run_id": run_id,

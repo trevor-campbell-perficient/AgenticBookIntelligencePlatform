@@ -74,3 +74,17 @@ def test_get_connection_validates_env_vars():
         reload(m)
         with pytest.raises(EnvironmentError, match="Missing required environment variables"):
             m.get_connection()
+
+def test_add_book_to_library_uses_merge_into():
+    from importlib import reload
+    import mcp_servers.databricks.db_client as m
+    reload(m)
+    mock_cursor = MagicMock()
+    with patch.object(m, "get_cursor") as mock_get_cursor:
+        mock_get_cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_get_cursor.return_value.__exit__ = MagicMock(return_value=False)
+        m.add_book_to_library(book_id="book123", title="Dune", status="read")
+    call_args = mock_cursor.execute.call_args
+    sql_str = call_args[0][0]
+    assert "MERGE INTO" in sql_str.upper()
+    assert "INSERT" in sql_str.upper()

@@ -55,3 +55,13 @@ async def test_unknown_tool_returns_validation_error():
     reload(m)
     result = m.TOOL_HANDLERS.get("nonexistent_tool")
     assert result is None  # Not in handlers dict
+
+def test_get_job_status_returns_validation_error_for_non_numeric_run_id():
+    with patch("mcp_servers.databricks.job_client._get_client") as mock_get_client:
+        from importlib import reload
+        import mcp_servers.databricks.server as m
+        reload(m)
+        result = m.TOOL_HANDLERS["get_job_status"]({"run_id": "not-a-number"})
+    assert result["error"] is True
+    assert result["errorCategory"] == "validation"
+    assert result["isRetryable"] is False

@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Any
+from typing import Any, Optional
 from contextlib import contextmanager
 from dotenv import load_dotenv
 
@@ -58,7 +58,7 @@ def get_reading_stats() -> dict[str, Any]:
     return {r["status"]: r["count"] for r in rows}
 
 
-def query_reading_log(status: str = None, limit: int = 50) -> list[dict[str, Any]]:
+def query_reading_log(status: Optional[str] = None, limit: int = 50) -> list[dict[str, Any]]:
     with get_cursor() as cursor:
         if status:
             cursor.execute(
@@ -77,13 +77,20 @@ def add_book_to_library(book_id: str, title: str, status: str) -> dict[str, Any]
     entry_id = str(uuid.uuid4())
     with get_cursor() as cursor:
         cursor.execute(
-            "INSERT INTO abip.reading.reading_log (entry_id, book_id, title, status) VALUES (%s, %s, %s, %s)",
+            """MERGE INTO abip.reading.reading_log AS target
+               USING (SELECT %s AS entry_id, %s AS book_id, %s AS title, %s AS status) AS source
+               ON target.book_id = source.book_id
+               WHEN NOT MATCHED THEN
+                 INSERT (entry_id, book_id, title, status)
+                 VALUES (source.entry_id, source.book_id, source.title, source.status)
+               WHEN MATCHED THEN
+                 UPDATE SET target.status = source.status, target.updated_at = CURRENT_TIMESTAMP""",
             (entry_id, book_id, title, status),
         )
     return {"entry_id": entry_id, "book_id": book_id, "title": title, "status": status}
 
 
-def update_reading_status(book_id: str, status: str, rating: int = None) -> dict[str, Any]:
+def update_reading_status(book_id: str, status: str, rating: Optional[int] = None) -> dict[str, Any]:
     with get_cursor() as cursor:
         if rating is not None:
             cursor.execute(

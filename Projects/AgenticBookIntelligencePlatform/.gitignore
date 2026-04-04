@@ -1,0 +1,21 @@
+# Worktrees
+.worktrees/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Data
+data/
+
+# IDE
+.vscode/
+.idea/

@@ -16,6 +16,13 @@ except ImportError:
     Server = object
     types = None
 
+
+class _TextContent:
+    """Fallback TextContent used when mcp is not installed (e.g. during tests)."""
+    def __init__(self, *, type: str, text: str) -> None:
+        self.type = type
+        self.text = text
+
 from mcp_servers.annotations.db import AnnotationsDB
 
 if _MCP_AVAILABLE:
@@ -34,29 +41,29 @@ def get_db() -> AnnotationsDB:
     return db
 
 
-def _handle_add_annotation(args: dict[str, Any]) -> dict[str, Any]:
+async def _handle_add_annotation(args: dict[str, Any]) -> dict[str, Any]:
     db = get_db()
     annotation_id = db.add_annotation(**args)
     return {"id": annotation_id}
 
 
-def _handle_get_annotations(args: dict[str, Any]) -> list[dict[str, Any]]:
+async def _handle_get_annotations(args: dict[str, Any]) -> list[dict[str, Any]]:
     db = get_db()
     return db.get_annotations(book_id=args.get("book_id"))
 
 
-def _handle_search_annotations(args: dict[str, Any]) -> list[dict[str, Any]]:
+async def _handle_search_annotations(args: dict[str, Any]) -> list[dict[str, Any]]:
     db = get_db()
     return db.search_annotations(args["query"])
 
 
-def _handle_add_journal_entry(args: dict[str, Any]) -> dict[str, Any]:
+async def _handle_add_journal_entry(args: dict[str, Any]) -> dict[str, Any]:
     db = get_db()
     entry_id = db.add_journal_entry(**args)
     return {"id": entry_id}
 
 
-def _handle_get_journal_entries(args: dict[str, Any]) -> list[dict[str, Any]]:
+async def _handle_get_journal_entries(args: dict[str, Any]) -> list[dict[str, Any]]:
     db = get_db()
     return db.get_journal_entries(book_id=args.get("book_id"))
 
@@ -68,6 +75,18 @@ TOOL_HANDLERS = {
     "add_journal_entry": _handle_add_journal_entry,
     "get_journal_entries": _handle_get_journal_entries,
 }
+
+
+async def call_tool(name: str, arguments: dict) -> list:
+    handler = TOOL_HANDLERS.get(name)
+    if not handler:
+        result: Any = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": f"Unknown tool: {name}"}
+    else:
+        try:
+            result = await handler(arguments)
+        except Exception as e:
+            result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
+    return [_TextContent(type="text", text=json.dumps(result, default=str, indent=2))]
 
 
 if _MCP_AVAILABLE:
@@ -134,17 +153,7 @@ if _MCP_AVAILABLE:
             ),
         ]
 
-    @app.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list:
-        handler = TOOL_HANDLERS.get(name)
-        if not handler:
-            result: Any = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": f"Unknown tool: {name}"}
-        else:
-            try:
-                result = handler(arguments)
-            except Exception as e:
-                result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
-        return [types.TextContent(type="text", text=json.dumps(result, default=str, indent=2))]
+    app.call_tool()(call_tool)
 
     async def main() -> None:
         async with stdio_server() as (read_stream, write_stream):

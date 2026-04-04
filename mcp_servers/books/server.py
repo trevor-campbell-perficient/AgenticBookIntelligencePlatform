@@ -117,7 +117,7 @@ TOOL_HANDLERS = {
 
 if _MCP_AVAILABLE:
     @app.list_tools()
-    async def list_tools() -> list:
+    async def list_tools() -> list:  # list[types.Tool] when MCP available
         return [
             types.Tool(
                 name="search_books",
@@ -127,7 +127,7 @@ if _MCP_AVAILABLE:
             types.Tool(
                 name="get_book_details",
                 description="Get full metadata for a specific book by its Hardcover book_id. Returns description, ratings, page count, cover URL, release date. Use after search_books when you have a known book id.",
-                inputSchema={"type": "object", "properties": {"book_id": {"type": "string"}}, "required": ["book_id"]},
+                inputSchema={"type": "object", "properties": {"book_id": {"type": "string", "description": "Hardcover integer book ID, obtained from search_books results"}}, "required": ["book_id"]},
             ),
             types.Tool(
                 name="get_book_reviews",
@@ -136,12 +136,12 @@ if _MCP_AVAILABLE:
             ),
             types.Tool(
                 name="search_reviews",
-                description="Full-text search across reviews by keyword, topic, or sentiment (e.g. 'slow start', 'great worldbuilding'). Searches review content across multiple books. Different from get_book_reviews which fetches all reviews for one specific book.",
+                description="Search reviews of books matching a title/topic query. Finds books matching the query, then filters their reviews for the given keyword. Use for 'find reviews mentioning X in books about Y'. Different from get_book_reviews which fetches all reviews for one specific known book_id.",
                 inputSchema={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
             ),
             types.Tool(
                 name="get_recommendations",
-                description="Get book recommendations similar to a given title. Returns list of recommended books.",
+                description="Find books similar to or related to a given title by searching the catalog. Returns books with similar titles or by the same author. Note: results are search-based, not algorithmically recommended.",
                 inputSchema={"type": "object", "properties": {"title": {"type": "string"}, "limit": {"type": "integer", "default": 10}}, "required": ["title"]},
             ),
             types.Tool(
@@ -151,18 +151,18 @@ if _MCP_AVAILABLE:
             ),
             types.Tool(
                 name="get_book_editions",
-                description="Get all known editions of a book (formats, languages, publishers) by Hardcover book_id.",
+                description="Get edition information for a book by its Hardcover book_id. Currently returns primary edition details. Full multi-edition support (formats, languages, publishers) planned for Phase 2 with Open Library integration.",
                 inputSchema={"type": "object", "properties": {"book_id": {"type": "string"}}, "required": ["book_id"]},
             ),
             types.Tool(
                 name="get_trending_books",
-                description="Get currently trending or popular books, optionally filtered by genre.",
+                description="Search for popular or trending books, optionally filtered by genre keyword. Results are based on catalog search — use for discovering books in a genre rather than real-time trending data.",
                 inputSchema={"type": "object", "properties": {"genre": {"type": "string"}, "limit": {"type": "integer", "default": 10}}, "required": []},
             ),
         ]
 
     @app.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list:
+    async def call_tool(name: str, arguments: dict) -> list:  # list[types.TextContent] when MCP available
         handler = TOOL_HANDLERS.get(name)
         if not handler:
             result = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": f"Unknown tool: {name}"}

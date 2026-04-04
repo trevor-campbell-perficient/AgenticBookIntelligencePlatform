@@ -60,12 +60,28 @@ class HardcoverClient:
                     headers=self.headers,
                 )
                 resp.raise_for_status()
-                return resp.json()
+                data = resp.json()
+                if "errors" in data:
+                    err_msg = data["errors"][0].get("message", "GraphQL error") if data["errors"] else "GraphQL error"
+                    return {"error": True, "errorCategory": "validation", "isRetryable": False, "message": f"GraphQL error: {err_msg}"}
+                return data
         except httpx.TimeoutException:
             return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": "Hardcover API timeout"}
         except httpx.HTTPStatusError as e:
-            return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": f"HTTP {e.response.status_code}"}
+            status = e.response.status_code
+            if status == 429:
+                category, retryable = "transient", True
+            elif 400 <= status < 500:
+                category, retryable = "validation", False
+            else:
+                category, retryable = "transient", True
+            return {"error": True, "errorCategory": category, "isRetryable": retryable, "message": f"HTTP {status}"}
+        except (httpx.NetworkError, httpx.ConnectError):
+            return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": "Network connection error"}
         except Exception as e:
+            # Check for JSON decode errors
+            if "json" in type(e).__name__.lower() or "decode" in str(e).lower():
+                return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": "Invalid JSON response from API"}
             return {"error": True, "errorCategory": "transient", "isRetryable": False, "message": str(e)}
 
     async def search_books(self, query: str) -> list[dict[str, Any]] | dict[str, Any]:

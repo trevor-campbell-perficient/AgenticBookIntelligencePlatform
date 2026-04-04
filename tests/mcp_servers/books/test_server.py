@@ -65,3 +65,34 @@ async def test_handle_search_reviews_filters_by_keyword():
     assert isinstance(result, list)
     assert len(result) == 1
     assert "worldbuilding" in result[0]["review"]
+
+@pytest.mark.asyncio
+async def test_handle_get_book_details_returns_details():
+    mock_client = AsyncMock()
+    mock_client.get_book_details.return_value = {"id": 1, "title": "Dune", "description": "A sci-fi epic"}
+    from importlib import reload
+    import mcp_servers.books.server as m
+    reload(m)
+    with patch("mcp_servers.books.server.get_hardcover_client", return_value=mock_client):
+        result = await m.handle_get_book_details({"book_id": "1"})
+    assert result["title"] == "Dune"
+
+@pytest.mark.asyncio
+async def test_handle_get_author_details_returns_author():
+    mock_client = AsyncMock()
+    mock_client.get_author_details.return_value = {"name": "Frank Herbert", "bio": "American sci-fi author"}
+    from importlib import reload
+    import mcp_servers.books.server as m
+    reload(m)
+    with patch("mcp_servers.books.server.get_hardcover_client", return_value=mock_client):
+        result = await m.handle_get_author_details({"author_name": "Frank Herbert"})
+    assert result["name"] == "Frank Herbert"
+
+@pytest.mark.asyncio
+async def test_get_hardcover_client_raises_on_missing_key(monkeypatch):
+    monkeypatch.delenv("HARDCOVER_API_KEY", raising=False)
+    # Reset the singleton
+    import mcp_servers.books.server as m
+    m._hardcover_client = None
+    with pytest.raises(EnvironmentError, match="HARDCOVER_API_KEY"):
+        m.get_hardcover_client()

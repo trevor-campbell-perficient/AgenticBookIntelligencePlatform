@@ -100,7 +100,7 @@ if _MCP_AVAILABLE:
             ),
             types.Tool(
                 name="search_annotations",
-                description="Full-text keyword search across all saved annotations by content or book title. Use to find annotations mentioning a specific concept or phrase. Different from get_annotations which retrieves all annotations for a book.",
+                description="Search annotations by keyword using pattern matching against content and book title. Case-insensitive for ASCII characters. Use to find annotations mentioning a specific concept or phrase. Different from get_annotations which retrieves all annotations for a book.",
                 inputSchema={
                     "type": "object",
                     "properties": {"query": {"type": "string", "description": "Keyword or phrase to search for"}},

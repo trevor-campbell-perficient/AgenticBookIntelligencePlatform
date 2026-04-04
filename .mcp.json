@@ -14,7 +14,8 @@
       "env": {
         "DATABRICKS_HOST": "${DATABRICKS_HOST}",
         "DATABRICKS_TOKEN": "${DATABRICKS_TOKEN}",
-        "DATABRICKS_HTTP_PATH": "${DATABRICKS_HTTP_PATH}"
+        "DATABRICKS_HTTP_PATH": "${DATABRICKS_HTTP_PATH}",
+        "DATABRICKS_CLUSTER_ID": "${DATABRICKS_CLUSTER_ID}"
       }
     },
     "annotations": {

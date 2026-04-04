@@ -28,3 +28,6 @@ All agents use `anthropic` sdk with `claude-sonnet-4-6`.
 
 ## Environment Variables
 See `.env.example` for all required vars. Copy to `.env` and fill in values.
+
+## Important
+All commands must be run from the project root directory. `.mcp.json` uses relative paths (e.g. `mcp_servers/<name>/server.py`), so running from any other directory will cause MCP server startup to fail.

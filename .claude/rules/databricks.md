@@ -1,5 +1,5 @@
 ---
-paths: ["**/*.py", "workflows/**/*"]
+paths: ["mcp_servers/databricks/**/*", "workflows/**/*"]
 ---
 # Databricks Rules
 

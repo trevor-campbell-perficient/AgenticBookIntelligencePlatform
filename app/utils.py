@@ -1,0 +1,22 @@
+import os
+import asyncio
+from typing import Optional
+import streamlit as st
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_agent_response(user_message: str) -> str:
+    """Call the coordinator agent and return response."""
+    from agents.coordinator import route_request
+    return asyncio.run(route_request(user_message, mcp_tools=[]))
+
+
+def init_chat_history() -> None:
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+
+def add_message(role: str, content: str) -> None:
+    st.session_state.messages.append({"role": role, "content": content})

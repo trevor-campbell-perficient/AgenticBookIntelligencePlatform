@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "books": {
+      "command": "python",
+      "args": ["mcp_servers/books/server.py"],
+      "env": {
+        "HARDCOVER_API_KEY": "${HARDCOVER_API_KEY}",
+        "GOOGLE_BOOKS_API_KEY": "${GOOGLE_BOOKS_API_KEY}"
+      }
+    },
+    "databricks": {
+      "command": "python",
+      "args": ["mcp_servers/databricks/server.py"],
+      "env": {
+        "DATABRICKS_HOST": "${DATABRICKS_HOST}",
+        "DATABRICKS_TOKEN": "${DATABRICKS_TOKEN}",
+        "DATABRICKS_HTTP_PATH": "${DATABRICKS_HTTP_PATH}",
+        "DATABRICKS_CLUSTER_ID": "${DATABRICKS_CLUSTER_ID}"
+      }
+    },
+    "annotations": {
+      "command": "python",
+      "args": ["mcp_servers/annotations/server.py"],
+      "env": {
+        "ANNOTATIONS_DB_PATH": "${ANNOTATIONS_DB_PATH}"
+      }
+    }
+  }
+}

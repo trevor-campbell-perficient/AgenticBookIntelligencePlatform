@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime
-from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,11 +14,12 @@ async def fetch_new_books() -> list[dict]:
     return results if isinstance(results, list) else []
 
 
-def upsert_books(books: list[dict]) -> list[dict]:
-    """Upsert books into abip.books.books Delta table using MERGE INTO. Returns the upserted books."""
+def upsert_books(books: list[dict]) -> int:
+    """Upsert books into abip.books.books Delta table using MERGE INTO. Returns count of upserted books."""
     from mcp_servers.databricks.db_client import get_cursor
     if not books:
-        return books
+        return 0
+    count = 0
     with get_cursor() as cursor:
         for book in books:
             cursor.execute(
@@ -31,7 +31,8 @@ def upsert_books(books: list[dict]) -> list[dict]:
                    WHEN MATCHED THEN UPDATE SET target.updated_at = CURRENT_TIMESTAMP""",
                 (str(book.get("id", "")), book.get("title", ""), "hardcover"),
             )
-    return books
+            count += 1
+    return count
 
 
 def queue_for_enrichment(book_ids: list[str]) -> None:
@@ -53,11 +54,23 @@ def queue_for_enrichment(book_ids: list[str]) -> None:
 async def run_sync() -> None:
     """Run the nightly book sync job."""
     print(f"[{datetime.now().isoformat()}] Starting nightly book sync...")
-    books = await fetch_new_books()
-    upserted = upsert_books(books)
-    book_ids = [str(b.get("id", "")) for b in upserted]
-    queue_for_enrichment(book_ids)
-    print(f"[{datetime.now().isoformat()}] Sync complete. {len(book_ids)} books upserted, {len(book_ids)} queued for enrichment.")
+    try:
+        books = await fetch_new_books()
+    except Exception as e:
+        print(f"[ERROR] fetch_new_books failed: {e}")
+        return
+    try:
+        count = upsert_books(books)
+    except Exception as e:
+        print(f"[ERROR] upsert_books failed: {e}")
+        return
+    book_ids = [str(b.get("id", "")) for b in books]
+    try:
+        queue_for_enrichment(book_ids)
+    except Exception as e:
+        print(f"[ERROR] queue_for_enrichment failed: {e}")
+        return
+    print(f"[{datetime.now().isoformat()}] Sync complete. {count} books upserted, {len(book_ids)} queued for enrichment.")
 
 
 if __name__ == "__main__":

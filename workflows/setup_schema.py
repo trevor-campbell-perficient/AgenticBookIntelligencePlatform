@@ -122,6 +122,13 @@ DDL = [
         tool_result STRING,
         called_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) USING DELTA""",
+
+    """CREATE TABLE IF NOT EXISTS abip.intelligence.weekly_digests (
+        digest_id STRING NOT NULL,
+        week_of DATE NOT NULL,
+        content STRING,
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) USING DELTA""",
 ]
 
 

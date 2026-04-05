@@ -1,13 +1,14 @@
 import asyncio
-from typing import Optional
+from typing import Any
 from dotenv import load_dotenv
+from mcp_servers.databricks.db_client import get_cursor
 
 load_dotenv()
 
 _client = None
 
 
-def _get_client():
+def _get_client() -> Any:
     global _client
     if _client is None:
         from agents.base import get_anthropic_client
@@ -35,7 +36,6 @@ async def generate_reading_brief(book: dict) -> str:
 
 async def run_enrichment() -> None:
     """Process all books in the enrichment queue."""
-    from mcp_servers.databricks.db_client import get_cursor
     with get_cursor() as cursor:
         cursor.execute(
             "SELECT book_id FROM abip.books.enrichment_queue WHERE status = 'pending' LIMIT 50"
@@ -44,21 +44,26 @@ async def run_enrichment() -> None:
 
     print(f"Enriching {len(pending)} books...")
     for book_id in pending:
-        book = {"title": f"Book {book_id}", "description": ""}
-        brief = await generate_reading_brief(book)
-        with get_cursor() as cursor:
-            cursor.execute(
-                """MERGE INTO abip.intelligence.reading_briefs AS target
-                   USING (SELECT %s AS book_id, %s AS brief_text) AS src
-                   ON target.book_id = src.book_id
-                   WHEN MATCHED THEN UPDATE SET target.brief_text = src.brief_text, target.generated_at = CURRENT_TIMESTAMP
-                   WHEN NOT MATCHED THEN INSERT (book_id, brief_text) VALUES (src.book_id, src.brief_text)""",
-                (book_id, brief),
-            )
-            cursor.execute(
-                "UPDATE abip.books.enrichment_queue SET status = 'done', processed_at = CURRENT_TIMESTAMP WHERE book_id = %s",
-                (book_id,),
-            )
+        try:
+            book = {"title": f"Book {book_id}", "description": ""}
+            brief = await generate_reading_brief(book)
+            with get_cursor() as cursor:
+                cursor.execute(
+                    """MERGE INTO abip.intelligence.reading_briefs AS target
+                       USING (SELECT %s AS book_id, %s AS brief_text) AS src
+                       ON target.book_id = src.book_id
+                       WHEN MATCHED THEN UPDATE SET target.brief_text = src.brief_text, target.generated_at = CURRENT_TIMESTAMP
+                       WHEN NOT MATCHED THEN INSERT (book_id, brief_text) VALUES (src.book_id, src.brief_text)""",
+                    (book_id, brief),
+                )
+                cursor.execute(
+                    "UPDATE abip.books.enrichment_queue SET status = 'done', processed_at = CURRENT_TIMESTAMP WHERE book_id = %s",
+                    (book_id,),
+                )
+            print(f"Enriched book_id={book_id}")
+        except Exception as e:
+            print(f"[ERROR] Failed to enrich book_id={book_id}: {e}")
+            # Continue to next book — don't abort the batch
     print("Enrichment complete.")
 
 

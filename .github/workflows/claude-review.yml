@@ -32,10 +32,16 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const review = JSON.parse(fs.readFileSync('/tmp/review.json', 'utf8'));
+            let review;
+            try {
+              review = JSON.parse(fs.readFileSync('/tmp/review.json', 'utf8'));
+            } catch (e) {
+              await github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: `Claude Code review failed to parse output: ${e.message}`});
+              return;
+            }
             if (review.length === 0) {
-              github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: "Claude Code review: No issues found."});
+              await github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: "Claude Code review: No issues found."});
             } else {
               const body = review.map(r => `**${r.severity.toUpperCase()}** \`${r.file}:${r.line}\`\n${r.issue}\n*Suggestion: ${r.suggestion}*`).join('\n\n');
-              github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: `## Claude Code Review\n\n${body}`});
+              await github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: `## Claude Code Review\n\n${body}`});
             }

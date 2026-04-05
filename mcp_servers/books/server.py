@@ -170,7 +170,7 @@ if _MCP_AVAILABLE:
             try:
                 result = await handler(arguments)
             except Exception as e:
-                result = {"error": True, "errorCategory": "transient", "isRetryable": False, "message": str(e)}
+                result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
     async def main() -> None:

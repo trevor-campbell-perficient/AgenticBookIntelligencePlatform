@@ -45,7 +45,14 @@ async def run_enrichment() -> None:
     print(f"Enriching {len(pending)} books...")
     for book_id in pending:
         try:
-            book = {"title": f"Book {book_id}", "description": ""}
+            # Fetch real book data from Delta table
+            with get_cursor() as cursor:
+                cursor.execute(
+                    "SELECT title, description FROM abip.books.books WHERE book_id = %s",
+                    (book_id,),
+                )
+                row = cursor.fetchone()
+            book = {"title": row[0] if row else f"Book {book_id}", "description": row[1] if row and row[1] else ""}
             brief = await generate_reading_brief(book)
             with get_cursor() as cursor:
                 cursor.execute(

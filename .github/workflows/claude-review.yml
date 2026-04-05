@@ -1,0 +1,41 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Claude Code Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          git diff origin/main...HEAD > /tmp/pr_diff.txt
+          claude -p "Review this PR diff for the Agentic Book Intelligence Platform. Check for: 1) Structured error responses from MCP tools (must include errorCategory, isRetryable, message), 2) Parameterized SQL queries (no f-string SQL), 3) Missing type hints on function signatures, 4) Hardcoded API keys or secrets. Output JSON array: [{\"file\": \"...\", \"line\": N, \"severity\": \"error|warning\", \"issue\": \"...\", \"suggestion\": \"...\"}]. Only report genuine issues, not style preferences." \
+            --output-format json \
+            < /tmp/pr_diff.txt > /tmp/review.json
+
+      - name: Post review comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = JSON.parse(fs.readFileSync('/tmp/review.json', 'utf8'));
+            if (review.length === 0) {
+              github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: "Claude Code review: No issues found."});
+            } else {
+              const body = review.map(r => `**${r.severity.toUpperCase()}** \`${r.file}:${r.line}\`\n${r.issue}\n*Suggestion: ${r.suggestion}*`).join('\n\n');
+              github.rest.issues.createComment({issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: `## Claude Code Review\n\n${body}`});
+            }

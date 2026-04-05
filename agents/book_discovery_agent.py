@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from agents.hooks import post_tool_use_normalize
+
 _client = None
 
 def _get_client():
@@ -16,11 +18,11 @@ Always return structured findings with source attribution: include book title, H
 When searching reviews, clearly distinguish between get_book_reviews (all reviews for one book) and search_reviews (keyword search across reviews).
 Return your findings as a JSON object with keys: books, reviews, recommendations, authors as appropriate."""
 
-SCOPED_TOOLS = {
+SCOPED_TOOLS: frozenset[str] = frozenset({
     "search_books", "get_book_details", "get_book_editions",
     "get_author_details", "get_recommendations", "get_trending_books",
     "get_book_reviews", "search_reviews"
-}
+})
 
 async def run_book_discovery_agent(task: str, mcp_tools: list) -> dict:
     """Run the Book Discovery subagent with explicit task context."""
@@ -28,7 +30,8 @@ async def run_book_discovery_agent(task: str, mcp_tools: list) -> dict:
     messages = [{"role": "user", "content": task}]
     book_tools = [t for t in mcp_tools if t["name"] in SCOPED_TOOLS]
 
-    while True:
+    MAX_ITERATIONS = 10
+    for _iteration in range(MAX_ITERATIONS):
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=4096,
@@ -51,7 +54,6 @@ async def run_book_discovery_agent(task: str, mcp_tools: list) -> dict:
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
-                    from agents.hooks import post_tool_use_normalize
                     raw_result = {"error": True, "message": "MCP client not connected in test"}
                     normalized = post_tool_use_normalize(block.name, raw_result)
                     tool_results.append({
@@ -60,3 +62,8 @@ async def run_book_discovery_agent(task: str, mcp_tools: list) -> dict:
                         "content": json.dumps(normalized),
                     })
             messages.append({"role": "user", "content": tool_results})
+        else:
+            # Unexpected stop_reason — treat as terminal
+            break
+
+    return {}

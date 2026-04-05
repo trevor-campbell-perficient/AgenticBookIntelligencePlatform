@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from agents.hooks import post_tool_use_normalize
+
 _client = None
 
 def _get_client():
@@ -32,10 +34,10 @@ Guidelines:
 - For reading briefs, include themes, what readers love, and honest caveats
 - Cite sources (which API, which agent provided data)"""
 
-SCOPED_TOOLS = {
+SCOPED_TOOLS: frozenset[str] = frozenset({
     "add_annotation", "get_annotations", "search_annotations",
     "add_journal_entry", "get_journal_entries"
-}
+})
 
 async def run_synthesis_agent(task: str, context: dict, mcp_tools: list) -> str:
     client = _get_client()
@@ -44,7 +46,8 @@ async def run_synthesis_agent(task: str, context: dict, mcp_tools: list) -> str:
     messages = [{"role": "user", "content": user_message}]
     annotation_tools = [t for t in mcp_tools if t["name"] in SCOPED_TOOLS]
 
-    while True:
+    MAX_ITERATIONS = 10
+    for _iteration in range(MAX_ITERATIONS):
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=4096,
@@ -63,5 +66,11 @@ async def run_synthesis_agent(task: str, context: dict, mcp_tools: list) -> str:
             for block in response.content:
                 if block.type == "tool_use":
                     raw_result = {"error": True, "message": "MCP client not connected in test"}
-                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(raw_result)})
+                    normalized = post_tool_use_normalize(block.name, raw_result)
+                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized)})
             messages.append({"role": "user", "content": tool_results})
+        else:
+            # Unexpected stop_reason — treat as terminal
+            break
+
+    return ""

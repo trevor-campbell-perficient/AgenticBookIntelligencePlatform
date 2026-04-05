@@ -25,6 +25,7 @@ async def test_coordinator_routes_stats_query_to_data_agent_only():
 
         result = await m.route_request("How many books did I read this year?")
 
+    assert result == "You've read 42 books!"
     mock_data.assert_called_once()
     mock_books.assert_not_called()
 
@@ -48,6 +49,7 @@ async def test_coordinator_routes_recommendation_to_multiple_agents():
 
         result = await m.route_request("What should I read next?")
 
+    assert result == "Here are my recommendations..."
     mock_data.assert_called_once()
     mock_books.assert_called_once()
     mock_synth.assert_called_once()

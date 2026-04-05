@@ -1,3 +1,5 @@
+import asyncio
+import concurrent.futures
 import streamlit as st
 
 st.title("Discover Books")
@@ -8,10 +10,11 @@ if query:
     with st.spinner("Searching..."):
         try:
             from mcp_servers.books.hardcover_client import HardcoverClient
-            import asyncio
             import os
             client = HardcoverClient(api_key=os.environ.get("HARDCOVER_API_KEY", ""))
-            results = asyncio.run(client.search_books(query))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(asyncio.run, client.search_books(query))
+                results = future.result()
             if isinstance(results, list) and results:
                 for book in results[:10]:
                     with st.expander(book.get("title", "Unknown")):

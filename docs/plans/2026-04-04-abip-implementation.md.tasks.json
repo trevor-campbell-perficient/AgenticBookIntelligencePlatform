@@ -1,0 +1,17 @@
+{
+  "planPath": "docs/plans/2026-04-04-abip-implementation.md",
+  "tasks": [
+    {"id": 8, "subject": "Task 1: Project Scaffold", "status": "pending", "blockedBy": []},
+    {"id": 9, "subject": "Task 2: Unity Catalog Schema Setup", "status": "pending", "blockedBy": [8]},
+    {"id": 10, "subject": "Task 3: MCP Server #1 — Books API", "status": "pending", "blockedBy": [8, 9]},
+    {"id": 11, "subject": "Task 4: MCP Server #2 — Databricks", "status": "pending", "blockedBy": [8, 9]},
+    {"id": 12, "subject": "Task 5: MCP Server #3 — Annotations", "status": "pending", "blockedBy": [8]},
+    {"id": 13, "subject": "Task 6: Agent Hooks", "status": "pending", "blockedBy": [8]},
+    {"id": 14, "subject": "Task 7: Coordinator + Subagents", "status": "pending", "blockedBy": [10, 11, 12, 13]},
+    {"id": 15, "subject": "Task 8: Streamlit App", "status": "pending", "blockedBy": [14]},
+    {"id": 16, "subject": "Task 9: Databricks Workflows", "status": "pending", "blockedBy": [9, 11]},
+    {"id": 17, "subject": "Task 10: CI/CD with Claude Code", "status": "pending", "blockedBy": [14]},
+    {"id": 18, "subject": "Task 11: Phase 2 — Event-Driven Pipeline", "status": "pending", "blockedBy": [15, 16]}
+  ],
+  "lastUpdated": "2026-04-04T00:00:00Z"
+}

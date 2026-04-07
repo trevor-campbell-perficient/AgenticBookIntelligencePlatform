@@ -27,7 +27,7 @@ Routing rules:
 Output format: {"agents": ["book_discovery", "data_intelligence", "synthesis"], "book_task": "...", "data_task": "...", "synthesis_task": "..."}
 Only include agents that are needed. Always include synthesis if multiple agents are used."""
 
-async def route_request(user_message: str, mcp_tools: Optional[list] = None, read_only: bool = False) -> str:
+async def route_request(user_message: str, mcp_tools: Optional[list] = None, tool_executor: Optional[Any] = None, read_only: bool = False) -> str:
     if mcp_tools is None:
         mcp_tools = []
     client = _get_client()
@@ -51,9 +51,9 @@ async def route_request(user_message: str, mcp_tools: Optional[list] = None, rea
     # Step 2: Run independent agents in parallel
     parallel_tasks = []
     if "book_discovery" in agents_to_run:
-        parallel_tasks.append(("books", run_book_discovery_agent(routing.get("book_task", user_message), mcp_tools)))
+        parallel_tasks.append(("books", run_book_discovery_agent(routing.get("book_task", user_message), mcp_tools, tool_executor)))
     if "data_intelligence" in agents_to_run:
-        parallel_tasks.append(("data", run_data_intelligence_agent(routing.get("data_task", user_message), mcp_tools)))
+        parallel_tasks.append(("data", run_data_intelligence_agent(routing.get("data_task", user_message), mcp_tools, tool_executor)))
 
     if parallel_tasks:
         results = await asyncio.gather(*[task for _, task in parallel_tasks])
@@ -62,7 +62,7 @@ async def route_request(user_message: str, mcp_tools: Optional[list] = None, rea
 
     # Step 3: Synthesis (sequential — depends on above results)
     if "synthesis" in agents_to_run or (not parallel_tasks):
-        return await run_synthesis_agent(routing.get("synthesis_task", user_message), context, mcp_tools)
+        return await run_synthesis_agent(routing.get("synthesis_task", user_message), context, mcp_tools, tool_executor)
 
     # If only one agent, return its result directly
     return json.dumps(context, indent=2)

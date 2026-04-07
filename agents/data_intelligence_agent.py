@@ -23,7 +23,7 @@ SCOPED_TOOLS: frozenset[str] = frozenset({
     "add_book_to_library", "update_reading_status", "trigger_enrichment_job", "get_job_status"
 })
 
-async def run_data_intelligence_agent(task: str, mcp_tools: list) -> dict:
+async def run_data_intelligence_agent(task: str, mcp_tools: list, tool_executor: Any = None) -> dict:
     client = _get_client()
     messages = [{"role": "user", "content": task}]
     db_tools = [t for t in mcp_tools if t["name"] in SCOPED_TOOLS]
@@ -50,12 +50,17 @@ async def run_data_intelligence_agent(task: str, mcp_tools: list) -> dict:
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
-                    raw_result = {"error": True, "message": "MCP client not connected in test"}
+                    if tool_executor is not None:
+                        try:
+                            raw_result = await tool_executor(block.name, block.input)
+                        except Exception as e:
+                            raw_result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
+                    else:
+                        raw_result = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": "No tool executor provided"}
                     normalized = post_tool_use_normalize(block.name, raw_result)
                     tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized)})
             messages.append({"role": "user", "content": tool_results})
         else:
-            # Unexpected stop_reason — treat as terminal
             break
 
     return {}

@@ -40,7 +40,7 @@ SCOPED_TOOLS: frozenset[str] = frozenset({
     "add_journal_entry", "get_journal_entries"
 })
 
-async def run_synthesis_agent(task: str, context: dict, mcp_tools: list) -> str:
+async def run_synthesis_agent(task: str, context: dict, mcp_tools: list, tool_executor: Any = None) -> str:
     client = _get_client()
     context_str = json.dumps(context, indent=2)
     user_message = f"Task: {task}\n\nContext from other agents:\n{context_str}"
@@ -66,12 +66,17 @@ async def run_synthesis_agent(task: str, context: dict, mcp_tools: list) -> str:
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
-                    raw_result = {"error": True, "message": "MCP client not connected in test"}
+                    if tool_executor is not None:
+                        try:
+                            raw_result = await tool_executor(block.name, block.input)
+                        except Exception as e:
+                            raw_result = {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
+                    else:
+                        raw_result = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": "No tool executor provided"}
                     normalized = post_tool_use_normalize(block.name, raw_result)
                     tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized)})
             messages.append({"role": "user", "content": tool_results})
         else:
-            # Unexpected stop_reason — treat as terminal
             break
 
     return ""

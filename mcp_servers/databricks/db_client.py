@@ -62,12 +62,12 @@ def query_reading_log(status: Optional[str] = None, limit: int = 50) -> list[dic
     with get_cursor() as cursor:
         if status:
             cursor.execute(
-                "SELECT * FROM abip.reading.reading_log WHERE status = %s ORDER BY updated_at DESC LIMIT %s",
+                "SELECT * FROM abip.reading.reading_log WHERE status = ? ORDER BY updated_at DESC LIMIT ?",
                 (status, limit),
             )
         else:
             cursor.execute(
-                "SELECT * FROM abip.reading.reading_log ORDER BY updated_at DESC LIMIT %s",
+                "SELECT * FROM abip.reading.reading_log ORDER BY updated_at DESC LIMIT ?",
                 (limit,),
             )
         return _rows_to_dicts(cursor)
@@ -78,13 +78,13 @@ def add_book_to_library(book_id: str, title: str, status: str) -> dict[str, Any]
     with get_cursor() as cursor:
         cursor.execute(
             """MERGE INTO abip.reading.reading_log AS target
-               USING (SELECT %s AS entry_id, %s AS book_id, %s AS title, %s AS status) AS source
+               USING (SELECT ? AS entry_id, ? AS book_id, ? AS title, ? AS status) AS source
                ON target.book_id = source.book_id
+               WHEN MATCHED THEN
+                 UPDATE SET target.status = source.status, target.updated_at = CURRENT_TIMESTAMP
                WHEN NOT MATCHED THEN
                  INSERT (entry_id, book_id, title, status)
-                 VALUES (source.entry_id, source.book_id, source.title, source.status)
-               WHEN MATCHED THEN
-                 UPDATE SET target.status = source.status, target.updated_at = CURRENT_TIMESTAMP""",
+                 VALUES (source.entry_id, source.book_id, source.title, source.status)""",
             (entry_id, book_id, title, status),
         )
     return {"entry_id": entry_id, "book_id": book_id, "title": title, "status": status}
@@ -94,12 +94,12 @@ def update_reading_status(book_id: str, status: str, rating: Optional[int] = Non
     with get_cursor() as cursor:
         if rating is not None:
             cursor.execute(
-                "UPDATE abip.reading.reading_log SET status = %s, rating = %s, updated_at = CURRENT_TIMESTAMP WHERE book_id = %s",
+                "UPDATE abip.reading.reading_log SET status = ?, rating = ?, updated_at = CURRENT_TIMESTAMP WHERE book_id = ?",
                 (status, rating, book_id),
             )
         else:
             cursor.execute(
-                "UPDATE abip.reading.reading_log SET status = %s, updated_at = CURRENT_TIMESTAMP WHERE book_id = %s",
+                "UPDATE abip.reading.reading_log SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE book_id = ?",
                 (status, book_id),
             )
     return {"book_id": book_id, "status": status, "rating": rating}

@@ -48,7 +48,7 @@ async def run_enrichment() -> None:
             # Fetch real book data from Delta table
             with get_cursor() as cursor:
                 cursor.execute(
-                    "SELECT title, description FROM abip.books.books WHERE book_id = %s",
+                    "SELECT title, description FROM abip.books.books WHERE book_id = ?",
                     (book_id,),
                 )
                 row = cursor.fetchone()
@@ -57,14 +57,14 @@ async def run_enrichment() -> None:
             with get_cursor() as cursor:
                 cursor.execute(
                     """MERGE INTO abip.intelligence.reading_briefs AS target
-                       USING (SELECT %s AS book_id, %s AS brief_text) AS src
+                       USING (SELECT ? AS book_id, ? AS brief_text) AS src
                        ON target.book_id = src.book_id
                        WHEN MATCHED THEN UPDATE SET target.brief_text = src.brief_text, target.generated_at = CURRENT_TIMESTAMP
-                       WHEN NOT MATCHED THEN INSERT (book_id, brief_text) VALUES (src.book_id, src.brief_text)""",
+                       WHEN NOT MATCHED THEN INSERT (book_id, brief_text, generated_at) VALUES (src.book_id, src.brief_text, CURRENT_TIMESTAMP)""",
                     (book_id, brief),
                 )
                 cursor.execute(
-                    "UPDATE abip.books.enrichment_queue SET status = 'done', processed_at = CURRENT_TIMESTAMP WHERE book_id = %s",
+                    "UPDATE abip.books.enrichment_queue SET status = 'done', processed_at = CURRENT_TIMESTAMP WHERE book_id = ?",
                     (book_id,),
                 )
             print(f"Enriched book_id={book_id}")

@@ -24,11 +24,11 @@ def upsert_books(books: list[dict]) -> int:
         for book in books:
             cursor.execute(
                 """MERGE INTO abip.books.books AS target
-                   USING (SELECT %s AS book_id, %s AS title, %s AS source) AS source
+                   USING (SELECT ? AS book_id, ? AS title, ? AS source) AS source
                    ON target.book_id = source.book_id
+                   WHEN MATCHED THEN UPDATE SET target.updated_at = CURRENT_TIMESTAMP
                    WHEN NOT MATCHED THEN INSERT (book_id, title, source)
-                       VALUES (source.book_id, source.title, source.source)
-                   WHEN MATCHED THEN UPDATE SET target.updated_at = CURRENT_TIMESTAMP""",
+                       VALUES (source.book_id, source.title, source.source)""",
                 (str(book.get("id", "")), book.get("title", ""), "hardcover"),
             )
             count += 1
@@ -44,8 +44,9 @@ def queue_for_enrichment(book_ids: list[str]) -> None:
         for book_id in book_ids:
             cursor.execute(
                 """MERGE INTO abip.books.enrichment_queue AS target
-                   USING (SELECT %s AS book_id) AS source
+                   USING (SELECT ? AS book_id) AS source
                    ON target.book_id = source.book_id
+                   WHEN MATCHED THEN UPDATE SET target.status = target.status
                    WHEN NOT MATCHED THEN INSERT (book_id, status) VALUES (source.book_id, 'pending')""",
                 (book_id,),
             )

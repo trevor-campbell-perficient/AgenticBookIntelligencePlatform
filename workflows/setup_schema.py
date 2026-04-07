@@ -26,8 +26,8 @@ DDL = [
         average_rating DOUBLE,
         ratings_count INT,
         source STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP,
+        updated_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.books.authors (
@@ -36,7 +36,7 @@ DDL = [
         bio STRING,
         similar_authors ARRAY<STRING>,
         source STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.books.reviews (
@@ -47,13 +47,13 @@ DDL = [
         review_text STRING,
         review_date STRING,
         source STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.books.enrichment_queue (
         book_id STRING NOT NULL,
-        status STRING DEFAULT 'pending',
-        queued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status STRING,
+        queued_at TIMESTAMP,
         processed_at TIMESTAMP
     ) USING DELTA""",
 
@@ -66,7 +66,7 @@ DDL = [
         published_date STRING,
         page_count INT,
         source STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.reading.reading_log (
@@ -77,8 +77,8 @@ DDL = [
         rating INT,
         started_date STRING,
         finished_date STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP,
+        updated_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.reading.reading_sessions (
@@ -88,7 +88,7 @@ DDL = [
         pages_read INT,
         notes STRING,
         mood STRING,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.reading.annotations (
@@ -98,20 +98,20 @@ DDL = [
         annotation_type STRING,
         content STRING,
         page_number INT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.intelligence.reading_briefs (
         book_id STRING NOT NULL,
         brief_text STRING,
-        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        generated_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.intelligence.book_embeddings (
         book_id STRING NOT NULL,
         embedding ARRAY<DOUBLE>,
         model_version STRING,
-        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        generated_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.intelligence.audit_log (
@@ -120,14 +120,14 @@ DDL = [
         tool_name STRING,
         tool_input STRING,
         tool_result STRING,
-        called_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        called_at TIMESTAMP
     ) USING DELTA""",
 
     """CREATE TABLE IF NOT EXISTS abip.intelligence.weekly_digests (
         digest_id STRING NOT NULL,
         week_of DATE NOT NULL,
         content STRING,
-        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        generated_at TIMESTAMP
     ) USING DELTA""",
 ]
 

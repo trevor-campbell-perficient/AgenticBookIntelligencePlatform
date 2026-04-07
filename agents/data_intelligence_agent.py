@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from agents.base import DEFAULT_MODEL
 from agents.hooks import post_tool_use_normalize
 
 _client = None
@@ -8,7 +9,7 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        from agents.base import get_anthropic_client
+        from agents.base import get_anthropic_client, DEFAULT_MODEL
         _client = get_anthropic_client()
     return _client
 
@@ -30,7 +31,7 @@ async def run_data_intelligence_agent(task: str, mcp_tools: list) -> dict:
     MAX_ITERATIONS = 10
     for _iteration in range(MAX_ITERATIONS):
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=DEFAULT_MODEL,
             max_tokens=2048,
             system=SYSTEM_PROMPT,
             tools=db_tools,

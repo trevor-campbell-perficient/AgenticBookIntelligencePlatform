@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import Optional
 
+from agents.base import DEFAULT_MODEL
 from agents.book_discovery_agent import run_book_discovery_agent
 from agents.data_intelligence_agent import run_data_intelligence_agent
 from agents.synthesis_agent import run_synthesis_agent
@@ -11,7 +12,7 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        from agents.base import get_anthropic_client
+        from agents.base import get_anthropic_client, DEFAULT_MODEL
         _client = get_anthropic_client()
     return _client
 
@@ -33,7 +34,7 @@ async def route_request(user_message: str, mcp_tools: Optional[list] = None, rea
 
     # Step 1: Determine routing
     routing_response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=DEFAULT_MODEL,
         max_tokens=512,
         system=ROUTING_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],

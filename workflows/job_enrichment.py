@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 from dotenv import load_dotenv
+from agents.base import DEFAULT_MODEL
 from mcp_servers.databricks.db_client import get_cursor
 
 load_dotenv()
@@ -11,7 +12,7 @@ _client = None
 def _get_client() -> Any:
     global _client
     if _client is None:
-        from agents.base import get_anthropic_client
+        from agents.base import get_anthropic_client, DEFAULT_MODEL
         _client = get_anthropic_client()
     return _client
 
@@ -27,7 +28,7 @@ async def generate_reading_brief(book: dict) -> str:
         "recommendation for who should read it. Keep it under 150 words."
     )
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=DEFAULT_MODEL,
         max_tokens=300,
         messages=[{"role": "user", "content": prompt}],
     )

@@ -3,6 +3,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 from dotenv import load_dotenv
+from agents.base import DEFAULT_MODEL
 from mcp_servers.databricks.db_client import query_reading_log, get_reading_stats, get_cursor
 
 load_dotenv()
@@ -13,7 +14,7 @@ _client = None
 def _get_client() -> Any:
     global _client
     if _client is None:
-        from agents.base import get_anthropic_client
+        from agents.base import get_anthropic_client, DEFAULT_MODEL
         _client = get_anthropic_client()
     return _client
 
@@ -40,7 +41,7 @@ async def run_digest() -> str:
     try:
         client = _get_client()
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=DEFAULT_MODEL,
             max_tokens=400,
             messages=[{"role": "user", "content": prompt}],
         )

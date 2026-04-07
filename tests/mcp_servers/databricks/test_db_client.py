@@ -68,7 +68,7 @@ def test_update_reading_status_with_rating_uses_parameterized_sql():
     assert result["rating"] == 5
 
 def test_get_connection_validates_env_vars():
-    with patch.dict("os.environ", {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True), patch("dotenv.load_dotenv"):
         from importlib import reload
         import mcp_servers.databricks.db_client as m
         reload(m)

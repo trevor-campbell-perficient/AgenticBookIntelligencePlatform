@@ -74,7 +74,7 @@ def test_get_connection_strips_https_prefix():
 
 
 def test_get_connection_raises_on_missing_env_vars():
-    with patch.dict("os.environ", {}, clear=True):
+    with patch.dict("os.environ", {}, clear=True), patch("dotenv.load_dotenv"):
         import importlib
         import workflows.setup_schema as m
         importlib.reload(m)

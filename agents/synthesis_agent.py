@@ -74,7 +74,7 @@ async def run_synthesis_agent(task: str, context: dict, mcp_tools: list, tool_ex
                     else:
                         raw_result = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": "No tool executor provided"}
                     normalized = post_tool_use_normalize(block.name, raw_result)
-                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized)})
+                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized, default=str)})
             messages.append({"role": "user", "content": tool_results})
         else:
             break

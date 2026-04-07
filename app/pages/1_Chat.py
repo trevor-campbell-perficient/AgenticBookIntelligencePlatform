@@ -26,8 +26,8 @@ if prompt := st.chat_input("Ask about books, your reading history, or get recomm
             try:
                 response = get_agent_response(prompt)
             except Exception as e:
-                response = f"Sorry, I couldn't process your request right now. ({type(e).__name__})"
-                st.warning("Agent unavailable — check your ANTHROPIC_API_KEY and service connectivity.")
+                response = f"Sorry, I couldn't process your request right now. ({type(e).__name__}: {e})"
+                st.warning(response)
         if response:
             st.write(response)
     add_message("assistant", response)

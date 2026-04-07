@@ -66,7 +66,7 @@ async def run_book_discovery_agent(task: str, mcp_tools: list, tool_executor: An
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,
-                        "content": json.dumps(normalized),
+                        "content": json.dumps(normalized, default=str),
                     })
             messages.append({"role": "user", "content": tool_results})
         else:

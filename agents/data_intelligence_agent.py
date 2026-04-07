@@ -58,7 +58,7 @@ async def run_data_intelligence_agent(task: str, mcp_tools: list, tool_executor:
                     else:
                         raw_result = {"error": True, "errorCategory": "validation", "isRetryable": False, "message": "No tool executor provided"}
                     normalized = post_tool_use_normalize(block.name, raw_result)
-                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized)})
+                    tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(normalized, default=str)})
             messages.append({"role": "user", "content": tool_results})
         else:
             break

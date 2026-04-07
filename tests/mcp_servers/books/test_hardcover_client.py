@@ -15,9 +15,11 @@ async def test_search_books_returns_results():
     mock_response.json.return_value = {
         "data": {
             "search": {
-                "results": [
-                    {"id": 1, "title": "Dune", "author_names": ["Frank Herbert"]}
-                ]
+                "results": {
+                    "hits": [
+                        {"document": {"id": 1, "title": "Dune", "author_names": ["Frank Herbert"]}}
+                    ]
+                }
             }
         }
     }

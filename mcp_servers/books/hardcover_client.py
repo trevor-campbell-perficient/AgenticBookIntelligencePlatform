@@ -35,9 +35,8 @@ query GetReviews($bookId: Int!, $limit: Int!) {
 
 GET_AUTHOR_QUERY = """
 query GetAuthor($name: String!) {
-  authors(where: {name: {_ilike: $name}}, limit: 1) {
-    id name bio
-    author_books(limit: 20) { book { id title } }
+  search(query: $name, query_type: "Author", per_page: 1) {
+    results
   }
 }
 """
@@ -46,8 +45,10 @@ query GetAuthor($name: String!) {
 class HardcoverClient:
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
+        # Support keys stored with or without the "Bearer " prefix
+        auth_value = api_key if api_key.startswith("Bearer ") else f"Bearer {api_key}"
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": auth_value,
             "Content-Type": "application/json",
         }
 
@@ -89,15 +90,15 @@ class HardcoverClient:
         if "error" in result:
             return result
         try:
-            results = result["data"]["search"]["results"]
-            items = results if isinstance(results, list) else []
+            hits = result["data"]["search"]["results"]["hits"]
             return [
                 {
-                    "id": str(r.get("id", "")),
-                    "title": r.get("title", ""),
-                    "author": r.get("author_names", [""])[0] if r.get("author_names") else "",
+                    "id": str(doc.get("id", "")),
+                    "title": doc.get("title", ""),
+                    "author": doc.get("author_names", [""])[0] if doc.get("author_names") else "",
                 }
-                for r in items
+                for hit in hits
+                for doc in [hit["document"]]
             ]
         except (KeyError, TypeError):
             return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": "Unexpected response structure"}
@@ -128,9 +129,17 @@ class HardcoverClient:
         if "error" in result:
             return result
         try:
-            authors = result["data"]["authors"]
-            if not authors:
+            hits = result["data"]["search"]["results"]["hits"]
+            if not hits:
                 return {"error": True, "errorCategory": "validation", "isRetryable": False, "message": f"Author '{author_name}' not found"}
-            return authors[0]
+            doc = hits[0]["document"]
+            return {
+                "id": str(doc.get("id", "")),
+                "name": doc.get("name", ""),
+                "bio": doc.get("bio", ""),
+                "books": doc.get("books", []),
+                "books_count": doc.get("books_count", 0),
+                "image_url": doc.get("image", {}).get("url", "") if doc.get("image") else "",
+            }
         except (KeyError, TypeError) as e:
             return {"error": True, "errorCategory": "transient", "isRetryable": True, "message": str(e)}
